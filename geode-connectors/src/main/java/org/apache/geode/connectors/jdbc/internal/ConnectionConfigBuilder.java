@@ -12,37 +12,37 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.apache.geode.connectors.jdbc.internal.xml;
+package org.apache.geode.connectors.jdbc.internal;
 
-import org.apache.geode.connectors.jdbc.internal.ConnectionConfiguration;
+import java.io.Serializable;
 
-class ConnectionConfigBuilder {
+public class ConnectionConfigBuilder {
   private String name;
   private String url;
   private String user;
   private String password;
 
-  ConnectionConfigBuilder withName(String name) {
+  public ConnectionConfigBuilder withName(String name) {
     this.name = name;
     return this;
   }
 
-  ConnectionConfigBuilder withUrl(String url) {
+  public ConnectionConfigBuilder withUrl(String url) {
     this.url = url;
     return this;
   }
 
-  ConnectionConfigBuilder withUser(String user) {
+  public ConnectionConfigBuilder withUser(String user) {
     this.user = user;
     return this;
   }
 
-  ConnectionConfigBuilder withPassword(String password) {
+  public ConnectionConfigBuilder withPassword(String password) {
     this.password = password;
     return this;
   }
 
-  ConnectionConfiguration build() {
+  public ConnectionConfiguration build() {
     return new ConnectionConfiguration(name, url, user, password);
   }
 }

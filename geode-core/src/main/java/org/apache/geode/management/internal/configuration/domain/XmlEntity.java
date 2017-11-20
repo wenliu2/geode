@@ -148,6 +148,12 @@ public class XmlEntity implements VersionedDataSerializable {
     initializeSearchString(parentKey, parentValue, childPrefix, childKey, childValue);
   }
 
+  // public XmlEntity(final String parentType, final String parentKey, final String parentValue,
+  // final String childPrefix, final String childNamespace, final String childType,
+  // final String childKey, final String childValue) {
+  //
+  // }
+
   private void initializeSearchString(final String parentKey, final String parentValue,
       final String childPrefix, final String childKey, final String childValue) {
     StringBuffer sb = new StringBuffer();
@@ -226,11 +232,11 @@ public class XmlEntity implements VersionedDataSerializable {
    * @throws TransformerFactoryConfigurationError
    * @since GemFire 8.1
    */
-  private String loadXmlDefinition(final Document document)
+  public String loadXmlDefinition(final Document document)
       throws XPathExpressionException, TransformerFactoryConfigurationError, TransformerException {
     final Cache cache = CacheFactory.getAnyInstance();
 
-    this.searchString = createQueryString(prefix, type, attributes);
+    // this.searchString = createQueryString(prefix, type, attributes);
     logger.info("XmlEntity:searchString: {}", this.searchString);
 
     if (document != null) {

@@ -14,7 +14,9 @@
  */
 package org.apache.geode.connectors.jdbc.internal;
 
-public class ConnectionConfiguration {
+import java.io.Serializable;
+
+public class ConnectionConfiguration implements Serializable {
 
   private final String name;
   private final String url;

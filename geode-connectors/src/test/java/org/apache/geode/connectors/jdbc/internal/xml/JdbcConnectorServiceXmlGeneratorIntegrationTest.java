@@ -51,11 +51,14 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import org.apache.geode.cache.CacheFactory;
+import org.apache.geode.connectors.jdbc.internal.ConnectionConfigBuilder;
 import org.apache.geode.connectors.jdbc.internal.ConnectionConfiguration;
 import org.apache.geode.connectors.jdbc.internal.InternalJdbcConnectorService;
 import org.apache.geode.connectors.jdbc.internal.RegionMapping;
 import org.apache.geode.internal.cache.InternalCache;
+import org.apache.geode.internal.cache.xmlcache.CacheXml;
 import org.apache.geode.internal.cache.xmlcache.CacheXmlGenerator;
+import org.apache.geode.management.internal.configuration.domain.XmlEntity;
 import org.apache.geode.test.junit.categories.IntegrationTest;
 
 @Category(IntegrationTest.class)
@@ -147,6 +150,28 @@ public class JdbcConnectorServiceXmlGeneratorIntegrationTest {
     assertThat(fieldMappingElements.getLength()).isEqualTo(2);
     validatePresenceOfFieldMapping(fieldMappingElements, "fieldName1", "columnMapping1");
     validatePresenceOfFieldMapping(fieldMappingElements, "fieldName2", "columnMapping2");
+  }
+
+  @Test
+  public void test() throws Exception {
+    InternalJdbcConnectorService service = cache.getService(InternalJdbcConnectorService.class);
+    ConnectionConfiguration config = new ConnectionConfigBuilder().withName("name").withUrl("url")
+        .withUser("username").withPassword("secret").build();
+    service.addOrUpdateConnectionConfig(config);
+
+    generateXml();
+
+    Document document = getCacheXmlDocument();
+
+    System.out.println("Document: " + document);
+
+    XmlEntity xmlEntity = new XmlEntity(CacheXml.CACHE, null, null,
+        JdbcConnectorServiceXmlGenerator.PREFIX, JdbcConnectorServiceXmlParser.NAMESPACE,
+        ElementType.CONNECTION_SERVICE.getTypeName(), null, null);
+
+    String xml = xmlEntity.loadXmlDefinition(document);
+
+    System.out.println("Xml: " + xml);
   }
 
   private void validatePresenceOfFieldMapping(NodeList elements, String fieldName,

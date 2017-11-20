@@ -43,8 +43,10 @@ import org.apache.geode.internal.cache.xmlcache.XmlGenerator;
 import org.apache.geode.internal.cache.xmlcache.XmlGeneratorUtils;
 
 public class JdbcConnectorServiceXmlGenerator implements XmlGenerator<Cache> {
+
+  public static final String PREFIX = "jdbc";
+
   private static final AttributesImpl EMPTY = new AttributesImpl();
-  static final String PREFIX = "jdbc";
 
   private final Collection<ConnectionConfiguration> connections;
   private final Collection<RegionMapping> mappings;
