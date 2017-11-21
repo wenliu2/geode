@@ -62,9 +62,10 @@ public class CreateConnectionFunction implements Function<ConnectionConfiguratio
       InternalJdbcConnectorService service = cache.getService(InternalJdbcConnectorService.class);
       service.addOrUpdateConnectionConfig(configuration);
 
-      XmlEntity xmlEntity = new XmlEntity(CacheXml.CACHE, null, null,
-          JdbcConnectorServiceXmlGenerator.PREFIX, JdbcConnectorServiceXmlParser.NAMESPACE,
-          ElementType.CONNECTION_SERVICE.getTypeName(), null, null);
+      // this line invokes AbstractExecution.executeFunctionLocally which throws and catches
+      // underlying Throwable which is provided to lastResult
+      XmlEntity xmlEntity = new XmlEntity(CacheXml.CACHE, JdbcConnectorServiceXmlGenerator.PREFIX,
+          JdbcConnectorServiceXmlParser.NAMESPACE, ElementType.CONNECTION_SERVICE.getTypeName());
 
       resultSender.lastResult(new CliFunctionResult(memberNameOrId, xmlEntity,
           "Created JDBC connection " + configuration.getName() + " on " + memberNameOrId));

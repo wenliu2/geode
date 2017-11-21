@@ -148,11 +148,18 @@ public class XmlEntity implements VersionedDataSerializable {
     initializeSearchString(parentKey, parentValue, childPrefix, childKey, childValue);
   }
 
-  // public XmlEntity(final String parentType, final String parentKey, final String parentValue,
-  // final String childPrefix, final String childNamespace, final String childType,
-  // final String childKey, final String childValue) {
-  //
-  // }
+   public XmlEntity(final String parentType, final String childPrefix, final String childNamespace, final String childType) {
+     this.parentType = parentType;
+     this.type = childType;
+     this.childPrefix = childPrefix;
+     this.childNamespace = childNamespace;
+
+     StringBuilder sb = new StringBuilder();
+     sb.append("//").append(this.parentType);
+     sb.append("/").append(childPrefix).append(':').append(this.type);
+     this.searchString = sb.toString();
+     this.xmlDefinition = loadXmlDefinition(); //TODO: delete this line
+   }
 
   private void initializeSearchString(final String parentKey, final String parentValue,
       final String childPrefix, final String childKey, final String childValue) {
@@ -242,6 +249,7 @@ public class XmlEntity implements VersionedDataSerializable {
     if (document != null) {
       XPathContext xpathContext = new XPathContext();
       xpathContext.addNamespace(prefix, namespace);
+      xpathContext.addNamespace(childPrefix, childNamespace); // TODO: wrap this line with conditional
       // Create an XPathContext here
       Node element = XmlUtils.querySingleElement(document, this.searchString, xpathContext);
       // Must copy to preserve namespaces.

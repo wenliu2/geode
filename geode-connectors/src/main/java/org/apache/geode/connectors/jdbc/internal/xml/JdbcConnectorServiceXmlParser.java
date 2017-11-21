@@ -20,7 +20,7 @@ import org.xml.sax.SAXException;
 import org.apache.geode.internal.cache.xmlcache.AbstractXmlParser;
 
 public class JdbcConnectorServiceXmlParser extends AbstractXmlParser {
-  public static final String NAMESPACE = "http://geode.apache.org/schema/jdbc-connector";
+  public static final String NAMESPACE = "http://geode.apache.org/schema/jdbc";
   static final String NAME = "name";
   static final String URL = "url";
   static final String USER = "user";

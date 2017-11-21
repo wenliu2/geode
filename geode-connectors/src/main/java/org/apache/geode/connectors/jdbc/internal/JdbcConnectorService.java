@@ -32,10 +32,12 @@ public class JdbcConnectorService implements InternalJdbcConnectorService {
   private volatile InternalCache cache;
   private boolean registered;
 
+  @Override
   public ConnectionConfiguration getConnectionConfig(String connectionName) {
     return connectionsByName.get(connectionName);
   }
 
+  @Override
   public RegionMapping getMappingForRegion(String regionName) {
     return mappingsByRegion.get(regionName);
   }

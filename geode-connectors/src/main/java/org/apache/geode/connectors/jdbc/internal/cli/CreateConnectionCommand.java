@@ -14,10 +14,12 @@
  */
 package org.apache.geode.connectors.jdbc.internal.cli;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.logging.log4j.Logger;
 import org.springframework.shell.core.annotation.CliCommand;
 import org.springframework.shell.core.annotation.CliOption;
 
@@ -26,6 +28,7 @@ import org.apache.geode.connectors.jdbc.internal.ConnectionConfigBuilder;
 import org.apache.geode.connectors.jdbc.internal.ConnectionConfiguration;
 import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.internal.cache.InternalCache;
+import org.apache.geode.internal.logging.LogService;
 import org.apache.geode.management.cli.CliMetaData;
 import org.apache.geode.management.cli.Result;
 import org.apache.geode.management.internal.cli.commands.GfshCommand;
@@ -38,6 +41,7 @@ import org.apache.geode.management.internal.security.ResourceOperation;
 import org.apache.geode.security.ResourcePermission;
 
 public class CreateConnectionCommand implements GfshCommand {
+  private static final Logger logger = LogService.getLogger();
 
   static final String CREATE_CONNECTION = "create jdbc-connection";
   static final String CREATE_CONNECTION__HELP = "Create JDBC connection for JDBC Connector.";
@@ -85,8 +89,15 @@ public class CreateConnectionCommand implements GfshCommand {
     ResultCollector<?, ?> resultCollector =
         executeFunction(new CreateConnectionFunction(), configuration, membersToCreateConnectionOn);
 
+    Object resultCollectorResult = resultCollector.getResult();
+    if (resultCollectorResult instanceof ArrayList) {
+//      logger.error("createConnection got Throwable result", (Throwable) resultCollectorResult);
+//      ((Throwable) resultCollectorResult).printStackTrace();
+      logger.error("resultCollectorResult=" + resultCollectorResult);
+    }
+
     List<CliFunctionResult> regionCreateResults =
-        (List<CliFunctionResult>) resultCollector.getResult();
+        (List<CliFunctionResult>) resultCollectorResult;
 
     AtomicReference<XmlEntity> xmlEntity = new AtomicReference<>();
     TabularResultData tabularResultData = ResultBuilder.createTabularResultData();

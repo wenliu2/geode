@@ -27,6 +27,7 @@ import static org.apache.geode.connectors.jdbc.internal.xml.JdbcConnectorService
 import static org.apache.geode.connectors.jdbc.internal.xml.JdbcConnectorServiceXmlParser.TABLE;
 import static org.apache.geode.connectors.jdbc.internal.xml.JdbcConnectorServiceXmlParser.URL;
 import static org.apache.geode.connectors.jdbc.internal.xml.JdbcConnectorServiceXmlParser.USER;
+import static org.apache.geode.distributed.ConfigurationProperties.CACHE_XML_FILE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -34,10 +35,14 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 
 import org.junit.After;
 import org.junit.Before;
@@ -47,6 +52,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.TemporaryFolder;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -58,7 +64,8 @@ import org.apache.geode.connectors.jdbc.internal.RegionMapping;
 import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.internal.cache.xmlcache.CacheXml;
 import org.apache.geode.internal.cache.xmlcache.CacheXmlGenerator;
-import org.apache.geode.management.internal.configuration.domain.XmlEntity;
+import org.apache.geode.internal.cache.xmlcache.CacheXmlParser;
+import org.apache.geode.management.internal.configuration.utils.XmlUtils;
 import org.apache.geode.test.junit.categories.IntegrationTest;
 
 @Category(IntegrationTest.class)
@@ -153,25 +160,98 @@ public class JdbcConnectorServiceXmlGeneratorIntegrationTest {
   }
 
   @Test
-  public void test() throws Exception {
+  public void generatedXmlWithConnectionConfigurationCanBeParsed() throws Exception {
     InternalJdbcConnectorService service = cache.getService(InternalJdbcConnectorService.class);
     ConnectionConfiguration config = new ConnectionConfigBuilder().withName("name").withUrl("url")
         .withUser("username").withPassword("secret").build();
     service.addOrUpdateConnectionConfig(config);
-
     generateXml();
 
-    Document document = getCacheXmlDocument();
+    File cacheXml = new File(temporaryFolder.getRoot(), "cache.xml");
+    cache.close();
+    cache = (InternalCache) new CacheFactory().set(CACHE_XML_FILE, cacheXml.getAbsolutePath()).create();
 
-    System.out.println("Document: " + document);
+    service = cache.getService(InternalJdbcConnectorService.class);
 
-    XmlEntity xmlEntity = new XmlEntity(CacheXml.CACHE, null, null,
-        JdbcConnectorServiceXmlGenerator.PREFIX, JdbcConnectorServiceXmlParser.NAMESPACE,
-        ElementType.CONNECTION_SERVICE.getTypeName(), null, null);
+    assertThat(service.getConnectionConfig("name")).isEqualTo(config);
+  }
 
-    String xml = xmlEntity.loadXmlDefinition(document);
+  @Test
+  public void generatedXmlWithConnectionConfigurationCanBeXPathed() throws Exception {
+    InternalJdbcConnectorService service = cache.getService(InternalJdbcConnectorService.class);
+    ConnectionConfiguration config = new ConnectionConfigBuilder().withName("name").withUrl("url")
+        .withUser("username").withPassword("secret").build();
+    service.addOrUpdateConnectionConfig(config);
+    generateXml();
 
-    System.out.println("Xml: " + xml);
+    File cacheXml = new File(temporaryFolder.getRoot(), "cache.xml");
+    for(String line : Files.readAllLines(cacheXml.toPath())) {
+      System.out.println(line);
+    }
+
+    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    factory.setNamespaceAware(true);
+
+    DocumentBuilder builder = factory.newDocumentBuilder();
+    builder.setEntityResolver(new CacheXmlParser());
+
+    Document document = builder.parse(cacheXml);
+    System.out.println(document.getDocumentElement());
+    XmlUtils.XPathContext xpathContext = new XmlUtils.XPathContext();
+    xpathContext.addNamespace(CacheXml.PREFIX, CacheXml.GEODE_NAMESPACE);
+    xpathContext.addNamespace(PREFIX, NAMESPACE); // TODO: wrap this line with conditional
+    // Create an XPathContext here
+    XPath xpath = XPathFactory.newInstance().newXPath();
+    xpath.setNamespaceContext(xpathContext);
+    Object result = xpath.evaluate("//cache/jdbc:connector-service", document, XPathConstants.NODE);
+    //Node element = XmlUtils.querySingleElement(document, "//cache/jdbc:connector-service", xpathContext);
+    // Must copy to preserve namespaces.
+    System.out.println("RESULT = " + XmlUtils.elementToString((Element) result));
+  }
+
+
+  @Test
+  public void generatedXmlWithRegionMappingCanBeParsed() throws Exception {
+    InternalJdbcConnectorService service = cache.getService(InternalJdbcConnectorService.class);
+    RegionMapping mapping = new RegionMappingBuilder().withRegionName("region").withPdxClassName("class")
+        .withTableName("table").withConnectionConfigName("connection").withPrimaryKeyInValue(true)
+        .withFieldToColumnMapping("field1", "columnMapping1")
+        .withFieldToColumnMapping("field2", "columnMapping2")
+        .build();
+    service.addOrUpdateRegionMapping(mapping);
+    generateXml();
+
+    File cacheXml = new File(temporaryFolder.getRoot(), "cache.xml");
+    cache.close();
+    cache = (InternalCache) new CacheFactory().set(CACHE_XML_FILE, cacheXml.getAbsolutePath()).create();
+
+    service = cache.getService(InternalJdbcConnectorService.class);
+
+    assertThat(service.getMappingForRegion("region")).isEqualTo(mapping);
+  }
+
+  @Test
+  public void generatedXmlWithEverythingCanBeParsed() throws Exception {
+    InternalJdbcConnectorService service = cache.getService(InternalJdbcConnectorService.class);
+    ConnectionConfiguration config = new ConnectionConfigBuilder().withName("name").withUrl("url")
+        .withUser("username").withPassword("secret").build();
+    service.addOrUpdateConnectionConfig(config);
+    RegionMapping mapping = new RegionMappingBuilder().withRegionName("region").withPdxClassName("class")
+        .withTableName("table").withConnectionConfigName("connection").withPrimaryKeyInValue(true)
+        .withFieldToColumnMapping("field1", "columnMapping1")
+        .withFieldToColumnMapping("field2", "columnMapping2")
+        .build();
+    service.addOrUpdateRegionMapping(mapping);
+    generateXml();
+
+    File cacheXml = new File(temporaryFolder.getRoot(), "cache.xml");
+    cache.close();
+    cache = (InternalCache) new CacheFactory().set(CACHE_XML_FILE, cacheXml.getAbsolutePath()).create();
+
+    service = cache.getService(InternalJdbcConnectorService.class);
+
+    assertThat(service.getConnectionConfig("name")).isEqualTo(config);
+    assertThat(service.getMappingForRegion("region")).isEqualTo(mapping);
   }
 
   private void validatePresenceOfFieldMapping(NodeList elements, String fieldName,
@@ -204,16 +284,32 @@ public class JdbcConnectorServiceXmlGeneratorIntegrationTest {
       throws IOException, SAXException, ParserConfigurationException {
     File cacheXml = new File(temporaryFolder.getRoot(), "cache.xml");
     DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+    dbFactory.setNamespaceAware(false);
+    dbFactory.setValidating(false);
     DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
     Document document = dBuilder.parse(cacheXml);
     document.getDocumentElement().normalize();
     return document;
   }
 
+  private void printXml()
+      throws IOException, SAXException, ParserConfigurationException {
+    File cacheXml = new File(temporaryFolder.getRoot(), "cache.xml");
+    for (String line : Files.readAllLines(cacheXml.toPath())) {
+      System.out.println(line);
+    }
+  }
+
   private void generateXml() throws IOException {
     File cacheXml = new File(temporaryFolder.getRoot(), "cache.xml");
     PrintWriter printWriter = new PrintWriter(new FileWriter(cacheXml));
     CacheXmlGenerator.generate(cache, printWriter, true, false, false);
+    printWriter.flush();
+  }
+
+  private void writeXml(File cacheXml, String xml) throws IOException {
+    PrintWriter printWriter = new PrintWriter(new FileWriter(cacheXml));
+    printWriter.print(xml);
     printWriter.flush();
   }
 
